@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright 2013, BroadSoft, Inc.
 
 Licensed under the Apache License,Version 2.0 (the "License");
@@ -6,7 +6,7 @@ you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "ASIS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -80,16 +80,13 @@ XSIEVENTS.API = (function() {
 			channelId = "";
 			callbacks.onError(error);
 		};
-
 		var request = XML_HEADER;
 		request = request + "<Channel xmlns=\"http://schema.broadsoft.com/xsi\">";
 		request = request + "<channelSetId>" + channelSetId + "</channelSetId>";
 		request = request + "<priority>1</priority>";
 		request = request + "<weight>100</weight>";
 		request = request + "<expires>3600</expires>";
-		request = request + "<applicationId>broadworks4chrome</applicationId>";
 		request = request + "</Channel>";
-
 		xhr.setRequestHeader("Authorization", "Basic " + credentials);
 		xhr.send(request);
 	}
@@ -130,28 +127,27 @@ XSIEVENTS.API = (function() {
 	}
 
 	function send(type, url, data) {
-		var response = null;
-		$.ajax({
-			beforeSend : function(request) {
-				request.setRequestHeader("Authorization", "Basic " + credentials);
-			},
-			cache : false,
-			type : type,
-			url : url,
-			dataType : "xml",
-			data : data,
-			async : false,
-			success : function(doc) {
-				response = doc;
-			},
-			error : function(xhr, status, error) {
-				LOGGER.API.error(MODULE,xhr.responseText + " " + status, error.message);
-				channelId = "";
-				callbacks.onError(error);
+		var xhr = new XMLHttpRequest();
+		var index = 0;
+		xhr.open(type, url, true);
+		xhr.onreadystatechange = function() {
+			var chunk = xhr.responseText.substring(index, xhr.responseText.length);
+			index = xhr.responseText.length;
+			var tokens = chunk.split(XML_HEADER);
+			for ( var i = 0; i < tokens.length; i++) {
+				if (tokens[i] != "") {
+					process(tokens[i]);
+				}
 			}
-		});
-		return response;
-	}
+		};
+		xhr.onerror = function(error) {
+			LOGGER.API.error(MODULE,"Error on ajax request: " + error.message);
+			channelId = "";
+			callbacks.onError(error);
+		};
+		xhr.setRequestHeader("Authorization", "Basic " + credentials);
+		xhr.send(data);
+	} // END SEND
 
 	function sendAsync(type, url, data, callback) {
 		$.ajax({
